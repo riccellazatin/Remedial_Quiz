@@ -96,3 +96,6 @@ class Profile(models.Model):
 
     def __str__(self):
         return self.user.email
+
+    def profile_picture_url(self):
+        return f'{self.user.username} Profile'
