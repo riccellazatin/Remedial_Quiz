@@ -9,10 +9,10 @@ from jobs.models import Job, JobApplicant
 
 # Create your views here.
 
-def signup_view(request):
+def signup_view(request, allowed_email=None):
     if request.user.is_authenticated:
         messages.info(request, 'You are already signed in.')
-        return redirect('home')
+        return redirect('auth:signin')
 
     if request.method == 'POST':
         email = request.POST.get('email', '').strip()
@@ -28,6 +28,10 @@ def signup_view(request):
         # Validate email format
         try:
             validate_email(email)
+
+            if validate_email != allowed_email:
+                raise ValidationError(f"Only '{allowed_email}' is allowed.")
+
         except ValidationError:
             messages.error(request, 'Please enter a valid email address.')
             return render(request, 'auth/signup.html', {'email': email, 'username': username})
@@ -74,22 +78,56 @@ def signup_view(request):
             messages.error(request, 'An error occurred while creating your account. Please try again.')
             return render(request, 'auth/signup.html', {'email': email, 'username': username})
     return render(request, 'auth/signup.html')
+
 def signin_view(request):
     if request.method == 'POST':
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        user = authenticate(request, email=email, password=password)
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '').strip()
+
+        if not all([email, password]):
+            messages.error(request, 'All fields are required.')
+            return render(request, 'auth/signin.html', {'email': email, 'password': password})
+        user = authenticate(email=email, password=password)
+
         if user is not None:
             login(request, user)
-            if not Profile.objects.filter(user=user).exists():
-                print('User does not have a profile.')
-            print('User has a profile.')
+            return redirect('auth:profile_view')
         else:
-            messages.error(request, 'Invalid email or password')
+            messages.error(request, 'Invalid username or password.')
+            return render(request, 'auth/signin.html', {'email': email, 'password': password})
     return render(request, 'auth/signin.html')
 
+
 def profile_create_view(request):
-    pass
+    if not request.user.is_authenticated:
+        messages.error(request, 'You are not logged in.')
+        return redirect('auth:signin')
+
+    if not Profile.objects.filter(user=request.user).exists():
+        if request.method == 'POST':
+            first_name = request.POST.get('first_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            bio = request.POST.get('bio', '').strip()
+            profile_picture = request.FILES.get('profile_picture', '')
+
+            if not all([first_name, last_name, profile_picture]):
+                messages.error(request, 'All fields are required.')
+                return render(request, 'auth/profile_create.html', {
+                'first_name': first_name,
+                'last_name': last_name,
+                'profile_picture': profile_picture,
+            })
+
+            profile = Profile.objects.create(
+                user=request.user,
+                first_name=first_name,
+                last_name=last_name,
+                bio=bio,
+                profile_picture=profile_picture
+            )
+            return redirect('posts:post-list')
+    return render(request, 'auth/profile_create.html')
+
 def profile_view(request):
     if not request.user.is_authenticated:
         messages.error(request, 'Please sign in first.')

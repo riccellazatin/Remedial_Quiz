@@ -1,8 +1,10 @@
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 import os
-import random
+
 def get_filename_ext(filepath):
     base_name = os.path.basename(filepath)
     name, ext = os.path.splitext(base_name)
@@ -47,7 +49,7 @@ class UserManager(BaseUserManager):
 
 # Create your models here.
 class CustomUser(AbstractUser):
-    email = models.EmailField(unique=True, blank=False)
+    email = models.EmailField(unique=True, blank=False, validators=[validate_email])
     username = models.CharField(max_length=150, unique=True, blank=False)
     staff = models.BooleanField(default=False)
     active = models.BooleanField(default=True)
@@ -67,6 +69,11 @@ class CustomUser(AbstractUser):
     def has_module_perms(self, app_label):
         return True
 
+    def validate_email(self):
+        allowed_email = "@objor.com"
+        if self != allowed_email:
+            raise ValidationError(f"Only '{allowed_email}' is allowed.")
+
     @property
     def is_staff(self):
         return self.staff
@@ -78,11 +85,9 @@ class CustomUser(AbstractUser):
     @property
     def is_admin(self):
         return self.admin
-    
-
-
 
 class Profile(models.Model):
+    objects = None
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
     bio = models.TextField(blank=True)

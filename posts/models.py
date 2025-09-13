@@ -1,5 +1,6 @@
+from random import random
+
 from django.db import models
-import random
 
 def get_filename_ext(filepath):
     pass
