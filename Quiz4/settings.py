@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts',
     'posts',
-    'jobs'
+    'jobs',
 ]
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
